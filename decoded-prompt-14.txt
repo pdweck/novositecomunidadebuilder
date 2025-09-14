@@ -1,0 +1,537 @@
+# PROMPT: Deploy de Projeto na Vercel - Guia Completo
+
+## 🎯 OBJETIVO
+Auxiliar no deploy completo de projetos Next.js, React, Vue, Nuxt, SvelteKit e outros frameworks suportados na Vercel, desde a verificação de compatibilidade até a publicação final.
+
+## 📋 PRÉ-REQUISITOS E VERIFICAÇÕES
+
+### 1. VERIFICAÇÃO DE CONTA GITHUB
+**IMPORTANTE**: Conta GitHub é OBRIGATÓRIA para deploy na Vercel.
+
+#### Se o projeto não tiver no GitHub:
+1. Acesse https://github.com
+2. Clique em "Sign up"
+3. Preencha: username, email, password
+4. Verifique o email
+5. Configure 2FA (recomendado)
+6. Crie um repositório para o projeto
+
+#### Se já tiver conta GitHub:
+1. Verifique se está logado
+2. Confirme que tem permissões para criar repositórios
+3. Verifique se o projeto atual está em um repositório Git
+
+### 2. VERIFICAÇÃO DE COMPATIBILIDADE COM VERCEL
+
+#### Frameworks Suportados:
+- ✅ Next.js (recomendado)
+- ✅ React (Create React App)
+- ✅ Vue.js
+- ✅ Nuxt.js
+- ✅ SvelteKit
+- ✅ Astro
+- ✅ Remix
+- ✅ Gatsby
+- ✅ Vite
+- ✅ Angular
+- ✅ Sites estáticos (HTML/CSS/JS)
+
+#### Estrutura de Arquivos Necessária:
+```
+projeto/
+├── package.json (obrigatório)
+├── next.config.js (para Next.js)
+├── vercel.json (opcional)
+├── public/ (assets estáticos)
+├── src/ ou pages/ (código fonte)
+└── .env.local (variáveis de ambiente)
+```
+
+### 3. 🚨 VERIFICAÇÃO CRÍTICA DE CÓDIGO (OBRIGATÓRIA)
+
+#### ⚠️ SEMPRE execute estas verificações ANTES do deploy para evitar falhas:
+
+```bash
+# 1. Verificação de tipos TypeScript (CRÍTICO)
+npx tsc --noEmit
+
+# 2. Verificação de build local (OBRIGATÓRIO)
+npm run build
+
+# 3. Verificação de lint (se configurado)
+npm run lint
+
+# 4. Teste de servidor local
+npm run dev
+```
+
+#### 🔧 CORREÇÕES DE ERROS COMUNS QUE CAUSAM FALHA NO DEPLOY:
+
+##### 1. Erro: Tipos "any" não permitidos
+**Problema**: `Argument of type 'any' is not assignable to parameter`
+**Solução**: Substituir por tipos específicos
+
+```typescript
+// ❌ INCORRETO - Causa falha no deploy
+const MyComponent = (props: any) => { ... }
+const cloudProps: Omit<any, "children"> = { ... }
+
+// ✅ CORRETO - Deploy funcionará
+interface MyComponentProps {
+  title: string;
+  children: React.ReactNode;
+  onClick?: () => void;
+}
+const MyComponent = ({ title, children, onClick }: MyComponentProps) => { ... }
+
+// Para props de componentes complexos:
+const cloudProps: Omit<CloudProps, "children"> = { ... }
+```
+
+##### 2. Erro: Props de ícones SVG incorretas
+**Problema**: `Type '(props: any) => JSX.Element' is not assignable`
+**Solução**: Usar tipos corretos do React
+
+```typescript
+// ❌ INCORRETO - Falha no deploy
+icon: (props: any) => JSX.Element
+
+// ✅ CORRETO - Deploy funcionará
+icon: (props: React.SVGProps<SVGSVGElement>) => JSX.Element
+```
+
+##### 3. Erro: Caracteres não escapados em JSX
+**Problema**: `Unexpected token. Expected jsx identifier`
+**Solução**: Escapar caracteres especiais
+
+```jsx
+// ❌ INCORRETO - Falha no deploy
+<span>Log in → </span>
+<span>Price: $50 & up</span>
+
+// ✅ CORRETO - Deploy funcionará
+<span>Log in <span aria-hidden="true">&rarr;</span></span>
+<span>Price: $50 &amp; up</span>
+// OU usar variáveis JavaScript
+<span>Log in {'->'}</span>
+<span>Price: {'$50 & up'}</span>
+```
+
+##### 4. Erro: Imports de módulos inexistentes
+**Problema**: `Cannot find module '@/components/...'`
+**Solução**: Verificar se todos os imports existem
+
+```typescript
+// ✅ SEMPRE verificar se existem antes de usar
+import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline'
+import { Dialog, DialogPanel } from '@headlessui/react'
+
+// Instalar dependências necessárias:
+npm install @headlessui/react @heroicons/react
+```
+
+##### 5. Erro: Componentes sem export default
+**Problema**: `Module has no default export`
+**Solução**: Garantir exports corretos
+
+```typescript
+// ❌ INCORRETO
+export const MyComponent = () => { ... }
+
+// ✅ CORRETO
+const MyComponent = () => { ... }
+export default MyComponent
+
+// OU
+export default function MyComponent() { ... }
+```
+
+##### 6. Erro: Variáveis de ambiente faltando
+**Problema**: `process.env.VARIABLE_NAME is undefined`
+**Solução**: Configurar todas as variáveis necessárias
+
+```bash
+# Verificar quais variáveis são usadas no código:
+grep -r "process.env" src/
+
+# Adicionar no .env.local:
+NEXT_PUBLIC_API_URL=https://api.exemplo.com
+DATABASE_URL=sua_database_url
+```
+
+### 4. COMANDOS DE VERIFICAÇÃO PRÉ-DEPLOY
+
+#### Verificação Completa:
+```bash
+# Verificar se é um projeto Node.js
+ls package.json
+
+# Verificar scripts disponíveis
+npm run
+
+# Verificar dependências
+npm list --depth=0
+
+# CRÍTICO: Verificar sintaxe e tipos
+npx tsc --noEmit
+
+# Verificar lint (se configurado)
+npm run lint
+
+# OBRIGATÓRIO: Testar build local
+npm run build
+
+# Testar servidor local
+npm run dev
+```
+
+#### ⚠️ Se algum comando falhar, NÃO prossiga com o deploy até corrigir!
+
+## 🚀 PROCESSO DE DEPLOY
+
+### ETAPA 1: PREPARAÇÃO DO REPOSITÓRIO GIT
+
+#### Se não for um repositório Git:
+```bash
+# Inicializar Git
+git init
+
+# Adicionar arquivos
+git add .
+
+# Primeiro commit
+git commit -m "Initial commit"
+
+# Conectar ao GitHub
+git remote add origin https://github.com/SEU_USERNAME/SEU_REPOSITORIO.git
+git branch -M main
+git push -u origin main
+```
+
+#### Se já for um repositório Git:
+```bash
+# Verificar status
+git status
+
+# Adicionar mudanças
+git add .
+
+# Commit das mudanças
+git commit -m "Preparando para deploy na Vercel"
+
+# Push para GitHub
+git push origin main
+```
+
+### ETAPA 2: CONFIGURAÇÃO DE VARIÁVEIS DE AMBIENTE
+
+#### Criar arquivo .env.local (se necessário):
+```env
+# Exemplo de variáveis comuns
+NEXT_PUBLIC_API_URL=https://api.exemplo.com
+DATABASE_URL=sua_database_url
+API_KEY=sua_api_key_secreta
+```
+
+#### Listar variáveis que precisam ser configuradas na Vercel:
+- Identifique todas as variáveis do .env.local
+- Separe variáveis públicas (NEXT_PUBLIC_*) das privadas
+- Prepare os valores para inserir na Vercel
+
+### ETAPA 3: DEPLOY VIA DASHBOARD VERCEL
+
+#### Método 1: Deploy via Dashboard (Recomendado)
+1. Acesse https://vercel.com
+2. Clique em "Continue with GitHub"
+3. Autorize a Vercel no GitHub
+4. Clique em "New Project"
+5. Selecione o repositório do GitHub
+6. Configure as opções:
+   - **Project Name**: nome-do-projeto
+   - **Framework Preset**: (detectado automaticamente)
+   - **Root Directory**: ./ (padrão)
+   - **Build Command**: npm run build (padrão)
+   - **Output Directory**: .next (para Next.js)
+   - **Development Command**: npm run dev (padrão)
+7. Adicione Environment Variables (se necessário)
+8. Clique em "Deploy"
+
+### ETAPA 4: DEPLOY VIA VERCEL CLI
+
+#### Instalação e Configuração:
+```bash
+# Instalar Vercel CLI
+npm install -g vercel
+
+# Fazer login
+vercel login
+
+# Verificar autenticação
+vercel whoami
+```
+
+#### Deploy do Projeto:
+```bash
+# Deploy inicial (irá configurar o projeto)
+vercel
+
+# Deploy de produção
+vercel --prod
+
+# Deploy com configurações específicas
+vercel --build-env NODE_ENV=production
+```
+
+### ETAPA 5: DEPLOY VIA VERCEL SDK (PROGRAMÁTICO)
+
+#### Instalação:
+```bash
+npm install @vercel/sdk
+```
+
+#### Código de Deploy:
+```javascript
+import { Vercel } from '@vercel/sdk';
+
+const vercel = new Vercel({
+  bearerToken: process.env.VERCEL_TOKEN,
+});
+
+async function deployProject() {
+  try {
+    // Criar projeto
+    const project = await vercel.projects.createProject({
+      name: 'meu-projeto',
+      framework: 'nextjs',
+      gitRepository: {
+        type: 'github',
+        repo: 'username/repo-name'
+      }
+    });
+
+    // Fazer deploy
+    const deployment = await vercel.deployments.createDeployment({
+      name: 'meu-projeto',
+      files: [], // arquivos do projeto
+      projectSettings: {
+        framework: 'nextjs',
+        buildCommand: 'npm run build',
+        outputDirectory: '.next'
+      }
+    });
+
+    console.log('Deploy realizado:', deployment.url);
+  } catch (error) {
+    console.error('Erro no deploy:', error);
+  }
+}
+```
+
+## ⚙️ CONFIGURAÇÕES AVANÇADAS
+
+### 1. ARQUIVO vercel.json
+```json
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/next"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/$1"
+    }
+  ],
+  "env": {
+    "NODE_ENV": "production"
+  },
+  "functions": {
+    "pages/api/*.js": {
+      "maxDuration": 30
+    }
+  }
+}
+```
+
+### 2. CONFIGURAÇÃO DE DOMÍNIO PERSONALIZADO
+```bash
+# Via CLI
+vercel domains add meudominio.com
+
+# Via Dashboard
+# 1. Acesse o projeto na Vercel
+# 2. Vá em Settings > Domains
+# 3. Adicione o domínio personalizado
+# 4. Configure DNS conforme instruções
+```
+
+### 3. CONFIGURAÇÃO DE ENVIRONMENT VARIABLES
+```bash
+# Via CLI
+vercel env add NODE_ENV production
+
+# Via Dashboard
+# 1. Acesse Settings > Environment Variables
+# 2. Adicione cada variável
+# 3. Selecione os ambientes (Development/Preview/Production)
+```
+
+## 🔧 TROUBLESHOOTING
+
+### Problemas Comuns:
+
+#### 1. Build Falha:
+```bash
+# Verificar logs
+vercel logs
+
+# Testar build local
+npm run build
+
+# Verificar versão do Node.js
+node --version
+```
+
+#### 2. Variáveis de Ambiente:
+- Verificar se todas as variáveis estão configuradas
+- Confirmar prefixos NEXT_PUBLIC_ para variáveis públicas
+- Verificar se não há espaços ou caracteres especiais
+
+#### 3. Problemas de Roteamento:
+- Verificar arquivo next.config.js
+- Configurar rewrites se necessário
+- Verificar se todas as rotas estão funcionando
+
+#### 4. Problemas de Dependências:
+```bash
+# Limpar cache
+npm cache clean --force
+
+# Reinstalar dependências
+rm -rf node_modules package-lock.json
+npm install
+
+# Verificar vulnerabilidades
+npm audit fix
+```
+
+## 📊 MONITORAMENTO PÓS-DEPLOY
+
+### 1. Verificações Essenciais:
+- ✅ Site carregando corretamente
+- ✅ Todas as páginas funcionando
+- ✅ API routes respondendo
+- ✅ Variáveis de ambiente carregadas
+- ✅ SSL/HTTPS ativo
+- ✅ Performance adequada
+
+### 2. Ferramentas de Monitoramento:
+```bash
+# Verificar status do deployment
+vercel inspect URL_DO_DEPLOY
+
+# Ver logs em tempo real
+vercel logs --follow
+
+# Verificar analytics
+vercel analytics
+```
+
+### 3. Configuração de Notificações:
+- Configure webhooks para notificações
+- Monitore erros via Vercel Dashboard
+- Configure alertas de performance
+
+## 🔄 ATUALIZAÇÕES FUTURAS
+
+### Deploy Automático:
+- Cada push para main fará deploy automático
+- Pull requests criam preview deployments
+- Branches podem ter deployments específicos
+
+### Rollback:
+```bash
+# Listar deployments
+vercel list
+
+# Fazer rollback
+vercel rollback URL_DO_DEPLOYMENT_ANTERIOR
+```
+
+## 📚 RECURSOS ADICIONAIS
+
+### Documentação Oficial:
+- https://vercel.com/docs
+- https://vercel.com/docs/cli
+- https://vercel.com/docs/rest-api
+
+### Comunidade:
+- GitHub Discussions
+- Discord da Vercel
+- Stack Overflow
+
+## ✅ CHECKLIST FINAL ANTI-ERRO
+
+### 🚨 VERIFICAÇÕES CRÍTICAS PRÉ-DEPLOY:
+- [ ] **TypeScript**: `npx tsc --noEmit` executado sem erros
+- [ ] **Build Local**: `npm run build` executado com sucesso
+- [ ] **Tipos Any**: Todos os `any` substituídos por tipos específicos
+- [ ] **Props SVG**: Ícones usam `React.SVGProps<SVGSVGElement>`
+- [ ] **Caracteres Escapados**: Símbolos especiais (→, &, <, >) escapados corretamente
+- [ ] **Imports Válidos**: Todos os imports verificados e dependências instaladas
+- [ ] **Exports Default**: Componentes têm export default correto
+
+### Antes do Deploy:
+- [ ] Conta GitHub criada e configurada
+- [ ] Projeto em repositório Git
+- [ ] Build local funcionando SEM ERROS
+- [ ] Variáveis de ambiente identificadas
+- [ ] Dependências atualizadas
+- [ ] **ZERO erros de TypeScript**
+
+### Durante o Deploy:
+- [ ] Projeto conectado ao GitHub
+- [ ] Configurações corretas na Vercel
+- [ ] Environment variables configuradas
+- [ ] Deploy executado com sucesso
+- [ ] **Logs de build verificados** para erros
+
+### Após o Deploy:
+- [ ] Site funcionando corretamente
+- [ ] Todas as funcionalidades testadas
+- [ ] Performance verificada
+- [ ] Domínio personalizado configurado (se aplicável)
+- [ ] Monitoramento ativo
+
+### 🛠️ COMANDOS DE EMERGÊNCIA SE DEPLOY FALHAR:
+
+```bash
+# 1. Verificar erros específicos
+npx tsc --noEmit --pretty
+
+# 2. Rebuild completo
+rm -rf .next node_modules
+npm install
+npm run build
+
+# 3. Verificar dependências faltando
+npm audit fix
+npm install --save-dev @types/react @types/node
+
+# 4. Verificar configuração TypeScript
+cat tsconfig.json
+
+# 5. Verificar sintaxe JSX
+npm run lint --fix
+```
+
+## 🎉 CONCLUSÃO
+
+Seguindo este guia completo, você terá seu projeto deployado na Vercel com todas as melhores práticas implementadas. A Vercel oferece uma plataforma robusta e fácil de usar para deploy de aplicações modernas.
+
+**Lembre-se**: A Vercel detecta automaticamente a maioria das configurações, mas sempre verifique se tudo está funcionando corretamente após o deploy.
+
+**Próximos passos**: Configure monitoramento, analytics e considere implementar CI/CD mais avançado conforme necessário. 

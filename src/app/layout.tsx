@@ -5,8 +5,8 @@ import './globals.css'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Novosite - Comunidade Builder Template',
-  description: 'Template para comunidade builder com React, TypeScript e Tailwind CSS',
+  title: 'Novosite - 18K Wine',
+  description: '18K Wine - Site com React, TypeScript e Tailwind CSS',
 }
 
 export default function RootLayout({
